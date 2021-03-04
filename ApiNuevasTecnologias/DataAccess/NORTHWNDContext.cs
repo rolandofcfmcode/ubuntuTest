@@ -811,17 +811,11 @@ namespace ApiNuevasTecnologias.DataAccess
             {
                 entity.Property(e => e.UserId).ValueGeneratedNever();
 
-                entity.Property(e => e.Email).HasMaxLength(500);
+                entity.Property(e => e.CreationDate).HasColumnType("datetime");
 
                 entity.Property(e => e.PasswordHash).IsRequired();
 
-                entity.Property(e => e.Phone).HasMaxLength(500);
-
                 entity.Property(e => e.Salt).IsRequired();
-
-                entity.Property(e => e.Status)
-                    .IsRequired()
-                    .HasDefaultValueSql("((1))");
 
                 entity.Property(e => e.UserName).IsRequired();
             });
