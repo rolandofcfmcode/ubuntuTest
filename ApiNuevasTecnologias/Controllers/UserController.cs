@@ -19,18 +19,58 @@ namespace ApiNuevasTecnologias.Controllers
     {
         // GET: api/<UserController>
         private static string secretKey = "0406b130-bd65-11ea-b3de-0242ac130004-ab0660bb-a138-45e9-bdf1-9ff1ac62ae5e-0242ac130004-ab0660bb-a138-45e9-b";
-
+        private static NORTHWNDContext dataContext = new NORTHWNDContext();
         [HttpGet]
         public IEnumerable<string> Get()
         {
             return new string[] { "value1", "value2" };
         }
 
-        // GET api/<UserController>/5
-        [HttpGet("{id}")]
-        public string Get(int id)
+        // GET api/<UserController>/login?userName="rolando"?password="123456"
+        [HttpGet("login")]
+        public bool Get(string userName, string password)
         {
-            return "value";
+
+            var userInDB = dataContext.Users.Where(w => w.UserName == userName).FirstOrDefault();
+
+            if (userInDB == null)
+                return false;
+
+            var hashPassword = userInDB.PasswordHash;
+            var salt = userInDB.Salt;
+
+            var decryptedPassword = Decrypt(hashPassword, salt);
+
+            var result = decryptedPassword == password;
+
+            return result;
+
+        }
+
+        private string Decrypt(string cipherText, string saltValue)
+        {
+            var mySecretKey = secretKey;
+            var saltBuffer = Encoding.UTF8.GetBytes(saltValue);
+            cipherText = cipherText.Replace(" ", "+");
+            byte[] cipherBytes = Convert.FromBase64String(cipherText);
+            using (Aes encryptor = Aes.Create())
+            {
+                Rfc2898DeriveBytes pdb = new Rfc2898DeriveBytes(mySecretKey, saltBuffer, 1000, HashAlgorithmName.SHA256);
+                encryptor.Key = pdb.GetBytes(32);
+                encryptor.IV = pdb.GetBytes(16);
+
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    using (CryptoStream cs = new CryptoStream(ms, encryptor.CreateDecryptor(), CryptoStreamMode.Write))
+                    {
+                        cs.Write(cipherBytes, 0, cipherBytes.Length);
+                        cs.Close();
+                    }
+                    cipherText = Encoding.UTF8.GetString(ms.ToArray());
+                }
+            }
+            return cipherText;
+
         }
 
         // POST api/<UserController>
@@ -46,7 +86,6 @@ namespace ApiNuevasTecnologias.Controllers
 
             userInDB.PasswordHash = Encrypt(userInDB.Salt, newUser.Password);
 
-            NORTHWNDContext dataContext = new NORTHWNDContext();
             dataContext.Users.Add(userInDB);
             dataContext.SaveChanges();
         }
