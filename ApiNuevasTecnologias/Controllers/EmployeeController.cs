@@ -1,5 +1,6 @@
 ﻿using ApiNuevasTecnologias.DataAccess;
 using ApiNuevasTecnologias.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -13,6 +14,7 @@ namespace ApiNuevasTecnologias.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class EmployeeController : ControllerBase
     {
         // GET: api/<EmployeeController>
@@ -29,6 +31,7 @@ namespace ApiNuevasTecnologias.Controllers
         // GET api/<EmployeeController>/5
         //[HttpGet("{id}")]
         [HttpGet("getEmployeeById")]
+       
         public Employee Get(int id)
         {
             //select *from Employees where ID = 1

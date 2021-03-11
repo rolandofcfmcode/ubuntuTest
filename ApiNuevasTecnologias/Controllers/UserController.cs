@@ -1,10 +1,13 @@
 ﻿using ApiNuevasTecnologias.DataAccess;
 using ApiNuevasTecnologias.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.IO;
 using System.Linq;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -28,23 +31,53 @@ namespace ApiNuevasTecnologias.Controllers
 
         // GET api/<UserController>/login?userName="rolando"?password="123456"
         [HttpGet("login")]
-        public bool Get(string userName, string password)
+        public string Get(string userName, string password)
         {
-
+            string token = "";
             var userInDB = dataContext.Users.Where(w => w.UserName == userName).FirstOrDefault();
 
             if (userInDB == null)
-                return false;
+                return token;
 
             var hashPassword = userInDB.PasswordHash;
             var salt = userInDB.Salt;
 
             var decryptedPassword = Decrypt(hashPassword, salt);
 
-            var result = decryptedPassword == password;
+            if (decryptedPassword == password)
+            {
+                token =  CreateJwtToken(userInDB);
+            }
+            return token;
 
-            return result;
+        }
 
+        private string CreateJwtToken(User userInDB)
+        {
+
+            try
+            {
+                //HEADER
+                var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(PrivateKeys.jwtKey));
+                var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+                //PAYLOAD
+                var payload = new List<Claim>();
+                payload.Add(new Claim("userName", userInDB.UserName));
+                payload.Add(new Claim("userId", userInDB.UserId.ToString()));
+
+
+                //ENCRIPTADO
+                var token = new JwtSecurityToken("API_NUEVAS_TEC", "FCFM", claims: payload, null,
+                    DateTime.Now.AddHours(1), signingCredentials: credentials);
+
+                return new JwtSecurityTokenHandler().WriteToken(token);
+            }
+            catch (Exception ex)
+            {
+                return "";
+            
+            }
         }
 
         private string Decrypt(string cipherText, string saltValue)
